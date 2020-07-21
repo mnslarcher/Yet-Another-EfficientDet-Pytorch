@@ -41,9 +41,13 @@ def _parse_args():
     parser = argparse.ArgumentParser("EfficientDet training script.")
     parser.add_argument(
         "--classes",
-        type=lambda x: sorted(set([s.strip().upper() for s in eval(x)])),
+        type=lambda x: yaml.load(open(x), Loader=yaml.SafeLoader)
+        if x.lower().endswith("yml")
+        else sorted(set([s.strip().upper() for s in eval(x)])),
         metavar="N",
-        help="List of classes with format \"['CLASS_NAME_1', ..., 'CLASS_NAME_N']\".",
+        help="List of classes with format \"['CLASS_NAME_1', ..., 'CLASS_NAME_N']\" or "
+        "YAML file path like 'path/to/your/classes.yml'. If it is a YAML file path, "
+        "the file must contain the list of classes.",
         required=True,
     )
     parser.add_argument(
@@ -618,6 +622,8 @@ def validate(model, loader, step, epoch, epochs, writer):
             val_loss_box_reg_list.append(val_loss_box_reg.item())
             iter_time_list.append(time.perf_counter() - iter_start_time)
 
+        # See https://github.com/pytorch/pytorch/issues/1355#issuecomment-658660582.
+        del loader_iter
         val_loss_cls = np.mean(val_loss_cls_list)
         val_loss_box_reg = np.mean(val_loss_box_reg_list)
         total_val_loss = val_loss_cls + val_loss_box_reg
@@ -808,6 +814,9 @@ def train(args):  # noqa: C901
             train_writer.flush()
 
             last_step += 1
+
+        # See https://github.com/pytorch/pytorch/issues/1355#issuecomment-658660582.
+        del train_loader_iter
 
         if epoch % args.val_interval == 0 or epoch + 1 == args.epochs:
             total_val_loss = validate(
