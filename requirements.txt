@@ -1,0 +1,7 @@
+opencv-python
+pycocotools
+pyyaml
+tensorboard
+torchvision==0.5.0
+tqdm
+webcolors
